@@ -1,18 +1,16 @@
 """Main entrypoint for script to run Gdoc Summaries"""
 
-import base64
 import logging
 import os.path
 from datetime import datetime, timedelta
-from email.message import EmailMessage
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 from google import auth
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 LOGGER = logging.getLogger(__name__)
 
@@ -172,63 +170,26 @@ def find_email_and_signoff_from_row(cells: list[str]) -> tuple[str, str]:
     return email, signoff
 
 
-def create_message(*, sender: str, to: str, subject: str, message_text: str) -> dict:
-    """Create a message for an email."""
-    # TODO: Deprecate this message creater
-    message = MIMEMultipart()
-    message["to"] = to
-    message["from"] = sender
-    message["subject"] = subject
-
-    msg = MIMEText(message_text)
-    message.attach(msg)
-
-    raw_message = base64.urlsafe_b64encode(message.as_bytes())
-    raw_message = raw_message.decode()
-    return {"raw": raw_message}
-
-
-def create_gmail(*, sender: str, to: str, subject: str, message_text: str) -> dict:
-    """Create an encoded Gmail message to send."""
-    message = EmailMessage()
-    message.set_content(message_text)
-    message["To"] = to
-    message["From"] = sender
-    message["Subject"] = subject
-    encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-    return {"message": {"raw": encoded_message}}
-
-
-def send_email(*, creds: Credentials, email_address: str, doc_name: str, doc_id: str):
-    """Use the Gmail API to send the email to the user"""
-    delegated_creds = creds.with_subject("danny.vu@cloverhealth.com")
-    service = build("gmail", "v1", credentials=delegated_creds)
+def send_email(*, email_address: str, doc_name: str, doc_id: str):
+    """Use Sendgrid's API Client to send an email"""
     sender_email = "danny.vu@cloverhealth.com"  # TODO: replace with prod email
     subject = f"Sign-off Required: {doc_name}"
     message_text = f"Here is your document {doc_name} with id {doc_id}. Please sign off. This will expire in 30 days."  # TODO: Add executive summary + NLP
-    old_message = create_message(
-        sender=sender_email,
-        to=email_address,
+    message = Mail(
+        from_email=sender_email,
+        to_emails=email_address,
         subject=subject,
-        message_text=message_text,
+        plain_text_content=message_text,
     )
-    new_message = create_gmail(
-        sender=sender_email,
-        to=email_address,
-        subject=subject,
-        message_text=message_text,
-    )
-    print(f"OLD message constructed is: {old_message}")
-    print(f"NEW message constructed is: {new_message}")
     try:
-        msg_sent = (
-            service.users().messages().send(userId="me", body=new_message).execute()
-        )
-        print(f"Message Id: {msg_sent['id']}")
-        print(f"Message sent to: {email_address}")
-    except HttpError as error:
-        print(f"An error occurred: {error}")
-        raise
+        sg = SendGridAPIClient(os.environ.get("SENDGRID_API_KEY"))
+        response = sg.send(message)
+        print(response.status_code)
+        print(response.body)
+        print(response.headers)
+    except Exception as e:
+        print(f"Error sending email! Error: {e}")
+        raise e
 
 
 def entrypoint() -> None:
@@ -259,7 +220,6 @@ def entrypoint() -> None:
             if not signoff:  # not signed off, send email to remind for signoff.
                 # TODO: Get Executive Summary (And possible NLP summary) to send along with email
                 send_email(
-                    creds=creds,
                     email_address=email,
                     doc_name=document["title"],
                     doc_id=document["documentId"],

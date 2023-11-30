@@ -4,3 +4,4 @@ google-auth-oauthlib>=0.4.6
 google-api-python-client>=2.26.1
 oauthlib>=3.1.1 
 httplib2>=0.20.1
+sendgrid~=6.10.0
