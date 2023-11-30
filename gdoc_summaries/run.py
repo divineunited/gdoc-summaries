@@ -4,6 +4,7 @@ import logging
 import os.path
 from datetime import datetime, timedelta
 
+import pyjokes
 from google import auth
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -202,19 +203,26 @@ def find_email_and_signoff_from_row(cells: list[str]) -> tuple[str, str]:
     return email, signoff
 
 
-def send_email(*, email_address: str, doc_name: str, doc_id: str, summary: str):
+def build_and_send_email(
+    *, email_address: str, doc_name: str, doc_id: str, summary: str
+):
     """Use Sendgrid's API Client to send an email"""
     sender_email = "danny.vu@cloverhealth.com"  # TODO: replace with prod email
-    subject = f"Sign-off Required: {doc_name}"
-    message_text = f"This document requires sign off: {doc_name}. Please click here to review and sign off: https://docs.google.com/document/d/{doc_id}."  # TODO: Add NLP
+    subject = f"Sign-off Requested: {doc_name}"
+    body_html = "<p>Greetings!</p><p>This is a friendly reminder that "
+    body_html += f"you have not yet reviewed: {doc_name}.</p>"
+    body_html += f'<p>Please click <a href="https://docs.google.com/document/d/{doc_id}">here</a> to review.</p>'
     if summary:
-        message_text += "\n\n---EXECUTIVE SUMMARY---\n\n"
-        message_text += summary
+        body_html += "<hr>"
+        body_html += "<h2>Executive Summary</h2>"
+        body_html += f"<p>{summary}</p><hr>"
+    body_html += "<p>--This was an automated email. Please do not reply. However, enjoy this joke--</p>"
+    body_html += f"<p>{pyjokes.get_joke(language='en', category='neutral')}</p>"
     message = Mail(
         from_email=sender_email,
         to_emails=email_address,
         subject=subject,
-        plain_text_content=message_text,
+        html_content=body_html,
     )
     try:
         sg = SendGridAPIClient(os.environ.get("SENDGRID_API_KEY"))
@@ -254,7 +262,7 @@ def entrypoint() -> None:
                 continue
             if not signoff:  # not signed off, send email to remind for signoff.
                 print(f"SENDING EMAIL TO: {email}")
-                send_email(
+                build_and_send_email(
                     email_address=email,
                     doc_name=document["title"],
                     doc_id=document["documentId"],
