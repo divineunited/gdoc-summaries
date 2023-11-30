@@ -21,14 +21,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.send",
 ]
 
-# TODO DEPLOYMENT: This credential is my Danny Dev sandbox in the Clover eng sandbox
-# it only has access to docs that I give it access to
-# Clover TDDs only are able to give access to users within CloverHealth
-# so I created a TDD within my own drive, and shared it to the service account email
-# which is: danny-dev@eng-sandbox.iam.gserviceaccount.com
-# The drive API goes through all docs that the service account has access to
-# You can just grant access for each TDD that we want this to chase for sign off.
-# SRE ticket: https://cloverhealth.atlassian.net/browse/SRE-4978
+# TODO: deployment considerations:
 CREDS_PATH = os.path.expanduser("~/Downloads/eng-sandbox-30f6bd0e093d.json")
 
 
