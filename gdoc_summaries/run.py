@@ -74,9 +74,6 @@ def get_doc_ids_from_drive(creds: Credentials) -> list[str]:
 
     doc_ids = [item["id"] for item in items]
     # doc_names = [item["name"] for item in items]
-    # print(f"File IDs: {doc_ids}")
-    # print(f"File Doc Names: {doc_names}")
-
     return doc_ids
 
 

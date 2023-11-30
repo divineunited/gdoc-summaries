@@ -40,3 +40,9 @@ Note: An empty column under the Date column means that the user has not signed o
 This is an executive summary that will get sent alongside the email that the 
 receiver of the email can quickly read and make sure they're intereseted in the content
 before going in and signing off.
+
+
+## For Developers
+- Create a python virtual env
+- then: `pip install -r requirements.txt`
+- to run tests: `pytest -k test_run`
