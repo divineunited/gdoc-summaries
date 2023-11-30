@@ -18,7 +18,6 @@ LOGGER = logging.getLogger(__name__)
 SCOPES = [
     "https://www.googleapis.com/auth/documents.readonly",
     "https://www.googleapis.com/auth/drive.metadata.readonly",
-    "https://www.googleapis.com/auth/gmail.send",
 ]
 
 # TODO: deployment considerations:
