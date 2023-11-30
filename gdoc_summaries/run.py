@@ -154,6 +154,9 @@ def find_executive_summary(doc_contents: dict) -> str:
             # then the summary should be the content below it.
             exec_summary_index = i + 1
             break
+    if exec_summary_index is None:
+        return exec_summary
+
     for i in range(exec_summary_index, len(doc_contents) - exec_summary_index):
         # The executive summary is normal text that can be split up into paragraphs
         # each paragraph / new line is a new entry in the doc_contents
@@ -256,6 +259,7 @@ def entrypoint() -> None:
         executive_summary = find_executive_summary(contents)
         # Extract signoff details from the table
         for row in table["tableRows"]:
+            sent = False
             cells: list[dict] = row["tableCells"]
             email, signoff = find_email_and_signoff_from_row(cells=cells)
             if not email:
@@ -268,6 +272,9 @@ def entrypoint() -> None:
                     doc_id=document["documentId"],
                     summary=executive_summary,
                 )
+                sent = True
+        if not sent:
+            print(f"This document {document['title']} has been fully signed off!")
 
 
 if __name__ == "__main__":
