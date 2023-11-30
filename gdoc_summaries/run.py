@@ -12,6 +12,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+from transformers import pipeline
 
 LOGGER = logging.getLogger(__name__)
 
@@ -172,6 +173,31 @@ def find_executive_summary(doc_contents: dict) -> str:
     return exec_summary
 
 
+def generate_nlp_summary(contents: dict) -> str:
+    """Use Hugging Face's Transformer API to generate NLP Summary of GDoc"""
+    # Extract the text from the contents
+    text = ""
+    for content in contents:
+        if "paragraph" in content:
+            for element in content["paragraph"]["elements"]:
+                if "textRun" in element:
+                    text += element["textRun"]["content"]
+
+    # Perform NLP summarization
+    summarizer = pipeline("summarization")
+    # Split the text into chunks of 1024 tokens which is the max this model can handle
+    chunks = [text[i : i + 1024] for i in range(0, len(text), 1024)]
+    summaries = []
+    for chunk in chunks:
+        summary = summarizer(chunk, max_length=130, min_length=30, do_sample=False)
+        summaries.append(summary[0]["summary_text"])
+
+    # Join all the summaries
+    full_summary = " ".join(summaries)
+
+    return full_summary
+
+
 def find_email_and_signoff_from_row(cells: list[str]) -> tuple[str, str]:
     """Extracts the email and signoff from a row of cells in a GDoc
 
@@ -207,7 +233,12 @@ def find_email_and_signoff_from_row(cells: list[str]) -> tuple[str, str]:
 
 
 def build_and_send_email(
-    *, email_address: str, doc_name: str, doc_id: str, summary: str
+    *,
+    email_address: str,
+    doc_name: str,
+    doc_id: str,
+    summary: str,
+    nlp_used: bool,
 ):
     """Use Sendgrid's API Client to send an email"""
     sender_email = "danny.vu@cloverhealth.com"  # TODO: replace with prod email
@@ -218,7 +249,10 @@ def build_and_send_email(
     if summary:
         body_html += "<hr>"
         body_html += "<h2>Executive Summary</h2>"
-        body_html += f"<p>{summary}</p><hr>"
+        body_html += f"<p>{summary}</p>"
+        if nlp_used:
+            body_html += "<p>--Summary auto-generated using NLP. There was not an executive summary in the doc.--</p>"
+        body_html += "<hr>"
     body_html += "<p>--This was an automated email. Please do not reply. However, enjoy this joke--</p>"
     body_html += f"<p>{pyjokes.get_joke(language='en', category='neutral')}</p>"
     message = Mail(
@@ -257,6 +291,9 @@ def entrypoint() -> None:
             print(f"No signoff table was found for Doc ID: {doc_id}")
             continue
         executive_summary = find_executive_summary(contents)
+        nlp_summary = ""
+        if not executive_summary:
+            nlp_summary = generate_nlp_summary(contents)
         # Extract signoff details from the table
         for row in table["tableRows"]:
             sent = False
@@ -270,7 +307,8 @@ def entrypoint() -> None:
                     email_address=email,
                     doc_name=document["title"],
                     doc_id=document["documentId"],
-                    summary=executive_summary,
+                    summary=executive_summary or nlp_summary,
+                    nlp_used=not executive_summary,
                 )
                 sent = True
         if not sent:
