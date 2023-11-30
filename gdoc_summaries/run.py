@@ -1,8 +1,12 @@
 """Main entrypoint for script to run Gdoc Summaries"""
 
+import base64
 import logging
 import os.path
 from datetime import datetime, timedelta
+from email.message import EmailMessage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 from google import auth
 from google.auth.transport.requests import Request
@@ -16,7 +20,7 @@ LOGGER = logging.getLogger(__name__)
 SCOPES = [
     "https://www.googleapis.com/auth/documents.readonly",
     "https://www.googleapis.com/auth/drive.metadata.readonly",
-    # TODO: Add email scope.
+    "https://www.googleapis.com/auth/gmail.send",
 ]
 
 # TODO DEPLOYMENT: This credential is my Danny Dev sandbox in the Clover eng sandbox
@@ -26,6 +30,7 @@ SCOPES = [
 # which is: danny-dev@eng-sandbox.iam.gserviceaccount.com
 # The drive API goes through all docs that the service account has access to
 # You can just grant access for each TDD that we want this to chase for sign off.
+# SRE ticket: https://cloverhealth.atlassian.net/browse/SRE-4978
 CREDS_PATH = os.path.expanduser("~/Downloads/eng-sandbox-30f6bd0e093d.json")
 
 
@@ -167,6 +172,65 @@ def find_email_and_signoff_from_row(cells: list[str]) -> tuple[str, str]:
     return email, signoff
 
 
+def create_message(*, sender: str, to: str, subject: str, message_text: str) -> dict:
+    """Create a message for an email."""
+    # TODO: Deprecate this message creater
+    message = MIMEMultipart()
+    message["to"] = to
+    message["from"] = sender
+    message["subject"] = subject
+
+    msg = MIMEText(message_text)
+    message.attach(msg)
+
+    raw_message = base64.urlsafe_b64encode(message.as_bytes())
+    raw_message = raw_message.decode()
+    return {"raw": raw_message}
+
+
+def create_gmail(*, sender: str, to: str, subject: str, message_text: str) -> dict:
+    """Create an encoded Gmail message to send."""
+    message = EmailMessage()
+    message.set_content(message_text)
+    message["To"] = to
+    message["From"] = sender
+    message["Subject"] = subject
+    encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    return {"message": {"raw": encoded_message}}
+
+
+def send_email(*, creds: Credentials, email_address: str, doc_name: str, doc_id: str):
+    """Use the Gmail API to send the email to the user"""
+    delegated_creds = creds.with_subject("danny.vu@cloverhealth.com")
+    service = build("gmail", "v1", credentials=delegated_creds)
+    sender_email = "danny.vu@cloverhealth.com"  # TODO: replace with prod email
+    subject = f"Sign-off Required: {doc_name}"
+    message_text = f"Here is your document {doc_name} with id {doc_id}. Please sign off. This will expire in 30 days."  # TODO: Add executive summary + NLP
+    old_message = create_message(
+        sender=sender_email,
+        to=email_address,
+        subject=subject,
+        message_text=message_text,
+    )
+    new_message = create_gmail(
+        sender=sender_email,
+        to=email_address,
+        subject=subject,
+        message_text=message_text,
+    )
+    print(f"OLD message constructed is: {old_message}")
+    print(f"NEW message constructed is: {new_message}")
+    try:
+        msg_sent = (
+            service.users().messages().send(userId="me", body=new_message).execute()
+        )
+        print(f"Message Id: {msg_sent['id']}")
+        print(f"Message sent to: {email_address}")
+    except HttpError as error:
+        print(f"An error occurred: {error}")
+        raise
+
+
 def entrypoint() -> None:
     """Entrypoint for GDoc Summaries"""
 
@@ -194,14 +258,12 @@ def entrypoint() -> None:
                 continue
             if not signoff:  # not signed off, send email to remind for signoff.
                 # TODO: Get Executive Summary (And possible NLP summary) to send along with email
-                send_email(email, document["title"], document["documentId"])
-
-
-def send_email(to, doc_name, doc_id):
-    """Use the Gmail API to send the email to the user"""
-    # TODO send the email
-    print(f"Sending e-mail to: {to}")
-    print(to, doc_name, doc_id)
+                send_email(
+                    creds=creds,
+                    email_address=email,
+                    doc_name=document["title"],
+                    doc_id=document["documentId"],
+                )
 
 
 if __name__ == "__main__":
