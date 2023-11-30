@@ -126,6 +126,46 @@ def find_signoff_table(doc_contents: dict) -> dict | None:
             return table
         except KeyError:
             return None
+    return None
+
+
+def find_executive_summary(doc_contents: dict) -> str:
+    """
+    Given a the content of a GDoc represented as a Python Dict
+    Find an Executive Summary.
+    """
+    exec_summary = ""
+    exec_summary_index = None
+    # Find the index of the sign off table:
+    for i, content in enumerate(doc_contents):
+        header_content = (
+            content.get("paragraph", {})
+            .get("elements", [{}])[0]
+            .get("textRun", {})
+            .get("content", "")
+        )
+
+        if not header_content:
+            continue
+
+        # If the header portion has the text "executive summary"
+        if header_content.strip().lower() == "executive summary":
+            # then the summary should be the content below it.
+            exec_summary_index = i + 1
+            break
+    for i in range(exec_summary_index, len(doc_contents) - exec_summary_index):
+        # The executive summary is normal text that can be split up into paragraphs
+        # each paragraph / new line is a new entry in the doc_contents
+        if (
+            doc_contents[i]["paragraph"]["paragraphStyle"]["namedStyleType"]
+            == "NORMAL_TEXT"
+        ):
+            exec_summary += doc_contents[i]["paragraph"]["elements"][0]["textRun"][
+                "content"
+            ]
+        else:  # We reached the next section.
+            break
+    return exec_summary
 
 
 def find_email_and_signoff_from_row(cells: list[str]) -> tuple[str, str]:
@@ -162,11 +202,14 @@ def find_email_and_signoff_from_row(cells: list[str]) -> tuple[str, str]:
     return email, signoff
 
 
-def send_email(*, email_address: str, doc_name: str, doc_id: str):
+def send_email(*, email_address: str, doc_name: str, doc_id: str, summary: str):
     """Use Sendgrid's API Client to send an email"""
     sender_email = "danny.vu@cloverhealth.com"  # TODO: replace with prod email
     subject = f"Sign-off Required: {doc_name}"
-    message_text = f"Here is your document {doc_name} with id {doc_id}. Please sign off. This will expire in 30 days."  # TODO: Add executive summary + NLP
+    message_text = f"This document requires sign off: {doc_name}. Please click here to review and sign off: https://docs.google.com/document/d/{doc_id}."  # TODO: Add NLP
+    if summary:
+        message_text += "\n\n---EXECUTIVE SUMMARY---\n\n"
+        message_text += summary
     message = Mail(
         from_email=sender_email,
         to_emails=email_address,
@@ -202,7 +245,7 @@ def entrypoint() -> None:
         if table is None:
             print(f"No signoff table was found for Doc ID: {doc_id}")
             continue
-
+        executive_summary = find_executive_summary(contents)
         # Extract signoff details from the table
         for row in table["tableRows"]:
             cells: list[dict] = row["tableCells"]
@@ -210,11 +253,12 @@ def entrypoint() -> None:
             if not email:
                 continue
             if not signoff:  # not signed off, send email to remind for signoff.
-                # TODO: Get Executive Summary (And possible NLP summary) to send along with email
+                print(f"SENDING EMAIL TO: {email}")
                 send_email(
                     email_address=email,
                     doc_name=document["title"],
                     doc_id=document["documentId"],
+                    summary=executive_summary,
                 )
 
 

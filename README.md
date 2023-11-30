@@ -31,3 +31,12 @@ Here is an example setup:
 Note: An empty column under the Date column means that the user has not signed off yet
 - that person will get an email for 30 days until they sign off or fill in that column with something
 - (in this case, Danny, Jane, and Roger will get emails)
+
+
+## Executive Summary
+- Optionally, define an Executive Summary section as follows:
+
+#### Executive Summary
+This is an executive summary that will get sent alongside the email that the 
+receiver of the email can quickly read and make sure they're intereseted in the content
+before going in and signing off.
