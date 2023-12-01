@@ -50,8 +50,11 @@ def test_get_doc_ids_from_drive_success():
     """Test get_doc_ids_from_drive returns doc ids successfully"""
     mock_service = Mock()
     mock_service.files().list().execute.return_value = {
-        "files": [{"id": "1"}, {"id": "2"}, {"id": "3"}]
+        "files": [{"id": "1"}, {"id": "2"}, {"id": "3"}],
+        "nextPageToken": None,
     }
+
+    mock_service.files().list_next.return_value = None
 
     with patch("gdoc_summaries.run.build", return_value=mock_service):
         doc_ids = run.get_doc_ids_from_drive(Credentials)
@@ -61,7 +64,12 @@ def test_get_doc_ids_from_drive_success():
 def test_get_doc_ids_from_drive_no_files():
     """Test run.get_doc_ids_from_drive returns empty list when no files found"""
     mock_service = Mock()
-    mock_service.files().list().execute.return_value = {"files": []}
+    mock_service.files().list().execute.return_value = {
+        "files": [],
+        "nextPageToken": None,
+    }
+
+    mock_service.files().list_next.return_value = None
 
     with patch("gdoc_summaries.run.build", return_value=mock_service):
         doc_ids = run.get_doc_ids_from_drive(Credentials)
