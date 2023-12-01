@@ -48,32 +48,34 @@ def get_doc_ids_from_drive(creds: Credentials) -> list[str]:
         past_date.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
     )  # Format it as RFC 3339 timestamp
 
+    doc_ids = []
     try:
         # Call the Drive v3 API
         service = build("drive", "v3", credentials=creds)
         # Query for Google Docs modified or created in the last 30 days
         # -- change to createdTime if modified is too noisy
         # -- remove the q object if you dont want to filter at all
-        results: dict = (
-            service.files()
-            .list(
-                q=f"mimeType='application/vnd.google-apps.document' and modifiedTime >= '{past_date_str}'",
-                pageSize=10,
-                fields="nextPageToken, files(id, name)",
-            )
-            .execute()
+        request = service.files().list(
+            q=f"mimeType='application/vnd.google-apps.document' and modifiedTime >= '{past_date_str}'",
+            pageSize=100,
+            fields="nextPageToken, files(id, name)",
         )
-        items: list[dict] = results.get("files", [])
+
+        while request is not None:
+            results = request.execute()
+            items: list[dict] = results.get("files", [])
+
+            if items:
+                doc_ids.extend([item["id"] for item in items])
+
+            request = service.files().list_next(request, results)
     except HttpError as error:
         print(f"An error occurred: {error}")
         raise
 
-    if not items:
+    if not doc_ids:
         LOGGER.error("No files found.")
-        return []
 
-    doc_ids = [item["id"] for item in items]
-    # doc_names = [item["name"] for item in items]
     return doc_ids
 
 
