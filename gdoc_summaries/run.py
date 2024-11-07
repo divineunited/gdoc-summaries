@@ -1,10 +1,13 @@
 """Main entrypoint for script to run Gdoc Summaries"""
 
 import logging
-import os.path
+import os
 from datetime import datetime, timedelta
 
+import markdown
 import pyjokes
+import requests
+from azure.identity import DefaultAzureCredential
 from google import auth
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -98,60 +101,68 @@ def get_doc_from_id(creds: Credentials, document_id: str) -> dict:
     return document
 
 
-def find_executive_summary(doc_contents: dict) -> str:
-    """
-    Given a the content of a GDoc represented as a Python Dict
-    Find an Executive Summary.
-    """
-    exec_summary = ""
-    exec_summary_index = None
-    # Find the index of the sign off table:
-    for i, content in enumerate(doc_contents):
-        header_content = (
-            content.get("paragraph", {})
-            .get("elements", [{}])[0]
-            .get("textRun", {})
-            .get("content", "")
-        )
+def generate_llm_summary(contents: list[dict]) -> str:
+    """Generate a summary of the document content using Azure OpenAI"""
 
-        if not header_content:
-            continue
+    prompt = (
+        "As a professional summarizer, create a concise and comprehensive "
+        "summary of the provided text while adhering to these guidelines:\n"
+        "If there is an author, before the summary, add: Author(s): Name(s)\n"
+        "Craft a summary that is detailed, thorough, in-depth, and complex, "
+        "while maintaining clarity and conciseness.\n"
+        "Incorporate main ideas and essential information, eliminating extraneous "
+        "language and focusing on critical aspects.\n"
+        "Rely strictly on the provided text, without including external information.\n"
+        "Utilize markdown to cleanly format your output. " 
+        "Example: Bold key subject matter and potential areas that may need expanded information.\n"
+        "Content is as follows:\n"
+        + str(contents)
+    )
 
-        # If the header portion has the text "executive summary"
-        if header_content.strip().lower() == "executive summary":
-            # then the summary should be the content below it.
-            exec_summary_index = i + 1
-            break
-    if exec_summary_index is None:
-        return exec_summary
+    # Prepare the prompt data for the ChatGPT model
+    data = {
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 500
+    }
 
-    for i in range(exec_summary_index, len(doc_contents) - exec_summary_index):
-        # The executive summary is normal text that can be split up into paragraphs
-        # each paragraph / new line is a new entry in the doc_contents
-        if (
-            doc_contents[i]["paragraph"]["paragraphStyle"]["namedStyleType"]
-            == "NORMAL_TEXT"
-        ):
-            exec_summary += doc_contents[i]["paragraph"]["elements"][0]["textRun"][
-                "content"
-            ]
-        else:  # We reached the next section.
-            break
-    return exec_summary
+    # Fetch token using Azure credential
+    credential = DefaultAzureCredential()
+    token = credential.get_token("https://cognitiveservices.azure.com/.default").token
+
+    # Set headers for the Azure API request
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}"
+    }
+
+    # Make request to Azure OpenAI using the correct API format
+    api_url = f"{constants.AZURE_API_BASE}/openai/deployments/{constants.AZURE_MODEL_ENGINE}/chat/completions?api-version={constants.AZURE_API_VERSION}"
+    response = requests.post(api_url, headers=headers, json=data)
+
+    if response.status_code == 200:
+        print("Generated LLM Summary")
+        markdown_content = response.json()["choices"][0]["message"]["content"].strip()
+        html_content = markdown.markdown(markdown_content)
+        return html_content
+    else:
+        print(f"Error in LLM request: {response.status_code}, {response.text}")
+        return "Error generating summary."
 
 
 def build_and_send_email(
     *, email_address: str, summaries: list[tuple[str, str, str]]
 ):
     """Use Sendgrid's API Client to send an email"""
-    sender_email = "danny.vu@cloverhealth.com"  # TODO: replace with prod email
-    subject = "TDRB Summary" # TODO: include one liner
-    body_html = "<p>Greetings!</p><p>Here are summaries of documents to review.</p>"
+    sender_email = "danny.vu@cloverhealth.com"
+    subject = "Technical Documentation Summary"
+    body_html = "<p>Greetings!</p><p>Here are summaries of recent documents to review.</p>"
 
     for doc_name, doc_id, summary in summaries:
         body_html += f'<h3>{doc_name}</h3>'
         if summary:
-            body_html += "<p><strong>Executive Summary:</strong> " + summary + "</p>"
+            body_html += "<p>" + summary + "</p>"
         body_html += f'<p>Click <a href="https://docs.google.com/document/d/{doc_id}">here</a> to read.</p>'
         body_html += "<hr>"
 
@@ -192,8 +203,9 @@ def entrypoint() -> None:
             print(f"No content found for {doc_id=}")
             continue
 
-        executive_summary = find_executive_summary(contents)
-        summaries.append((document["title"], document["documentId"], executive_summary))
+        llm_summary = generate_llm_summary(contents)
+
+        summaries.append((document["title"], document["documentId"], llm_summary))
 
     for email in constants.TDRB_SUBSCRIBERS:
         print(f"SENDING EMAIL TO: {email}")
