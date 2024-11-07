@@ -8,10 +8,12 @@ import pyjokes
 from google import auth
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
+from googleapiclient import discovery
 from googleapiclient.errors import HttpError
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+
+from gdoc_summaries.lib import constants
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,7 +53,7 @@ def get_doc_ids_from_drive(creds: Credentials) -> list[str]:
     doc_ids = []
     try:
         # Call the Drive v3 API
-        service = build("drive", "v3", credentials=creds)
+        service = discovery.build("drive", "v3", credentials=creds)
         # Query for Google Docs modified or created in the last 30 days
         # -- change to createdTime if modified is too noisy
         # -- remove the q object if you dont want to filter at all
@@ -74,7 +76,7 @@ def get_doc_ids_from_drive(creds: Credentials) -> list[str]:
         raise
 
     if not doc_ids:
-        LOGGER.error("No files found.")
+        LOGGER.warning("No files found.")
 
     return doc_ids
 
@@ -86,7 +88,7 @@ def get_doc_from_id(creds: Credentials, document_id: str) -> dict:
     """
     try:
         # Retrieve the documents contents from the Docs service.
-        service = build("docs", "v1", credentials=creds)
+        service = discovery.build("docs", "v1", credentials=creds)
         document = service.documents().get(documentId=document_id).execute()
     except HttpError as err:
         print(err)
@@ -94,39 +96,6 @@ def get_doc_from_id(creds: Credentials, document_id: str) -> dict:
 
     print(f"---NEXT DOC: {document.get('title')}---")
     return document
-
-
-def find_signoff_table(doc_contents: dict) -> dict | None:
-    """
-    Given a the content of a GDoc represented as a Python Dict
-    Find the index where the SignOff table would be stored.
-    """
-    table_index = None
-    # Find the index of the sign off table:
-    for i, content in enumerate(doc_contents):
-        header_content = (
-            content.get("paragraph", {})
-            .get("elements", [{}])[0]
-            .get("textRun", {})
-            .get("content", "")
-        )
-
-        if not header_content:
-            continue
-
-        # If the header portion has the text "Signoff"
-        if header_content.strip().lower() in ("signoff", "sign-off"):
-            # then the signoff table is the next content right below it.
-            table_index = i + 1
-            break
-    if table_index is not None:
-        try:
-            # make sure the table exists:
-            table = doc_contents[table_index]["table"]
-            return table
-        except KeyError:
-            return None
-    return None
 
 
 def find_executive_summary(doc_contents: dict) -> str:
@@ -169,40 +138,6 @@ def find_executive_summary(doc_contents: dict) -> str:
         else:  # We reached the next section.
             break
     return exec_summary
-
-
-def find_email_and_signoff_from_row(cells: list[str]) -> tuple[str, str]:
-    """Extracts the email and signoff from a row of cells in a GDoc
-
-    The table must be formatted such with 3 columns in the @NAME | RACI | DATE format
-    Example: @DannyVu | R | 2023-12-25
-    """
-    # wrap this to defend against malformed tables
-    try:
-        email = (
-            cells[0]
-            .get("content", [{}])[0]
-            .get("paragraph", {})
-            .get("elements", [{}])[0]
-            .get("person", {})
-            .get("personProperties", {})
-            .get("email", "")
-        ).strip()
-
-        # Check for sign off in the 3rd column
-        signoff = (
-            cells[2]
-            .get("content", [{}])[0]
-            .get("paragraph", {})
-            .get("elements", [{}])[0]
-            .get("textRun", {})
-            .get("content", "")
-        ).strip()
-    except IndexError:
-        print("Malformed table: no email / signoff found.")
-        return "", ""
-
-    return email, signoff
 
 
 def build_and_send_email(
@@ -249,31 +184,18 @@ def entrypoint() -> None:
         document = get_doc_from_id(creds, doc_id)
         contents = document.get("body", {}).get("content", [])
         if not contents:
+            print(f"No content found for {doc_id=}")
             continue
 
-        table = find_signoff_table(contents)
-        if table is None:
-            print(f"No signoff table was found for Doc ID: {doc_id}")
-            continue
         executive_summary = find_executive_summary(contents)
-        # Extract signoff details from the table
-        for row in table["tableRows"]:
-            sent = False
-            cells: list[dict] = row["tableCells"]
-            email, signoff = find_email_and_signoff_from_row(cells=cells)
-            if not email:
-                continue
-            if not signoff:  # not signed off, send email to remind for signoff.
-                print(f"SENDING EMAIL TO: {email}")
-                build_and_send_email(
-                    email_address=email,
-                    doc_name=document["title"],
-                    doc_id=document["documentId"],
-                    summary=executive_summary,
-                )
-                sent = True
-        if not sent:
-            print(f"This document {document['title']} has been fully signed off!")
+        for email in constants.TDRB_SUBSCRIBERS:
+            print(f"SENDING EMAIL TO: {email}")
+            build_and_send_email(
+                email_address=email,
+                doc_name=document["title"],
+                doc_id=document["documentId"],
+                summary=executive_summary,
+            )
 
 
 if __name__ == "__main__":
