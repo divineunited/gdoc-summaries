@@ -141,20 +141,23 @@ def find_executive_summary(doc_contents: dict) -> str:
 
 
 def build_and_send_email(
-    *, email_address: str, doc_name: str, doc_id: str, summary: str
+    *, email_address: str, summaries: list[tuple[str, str, str]]
 ):
     """Use Sendgrid's API Client to send an email"""
     sender_email = "danny.vu@cloverhealth.com"  # TODO: replace with prod email
-    subject = f"Sign-off Requested: {doc_name}"
-    body_html = "<p>Greetings!</p><p>This is a friendly reminder that "
-    body_html += f"you have not yet reviewed: {doc_name}.</p>"
-    body_html += f'<p>Please click <a href="https://docs.google.com/document/d/{doc_id}">here</a> to review.</p>'
-    if summary:
+    subject = "TDRB Summary" # TODO: include one liner
+    body_html = "<p>Greetings!</p><p>Here are summaries of documents to review.</p>"
+
+    for doc_name, doc_id, summary in summaries:
+        body_html += f'<h3>{doc_name}</h3>'
+        if summary:
+            body_html += "<p><strong>Executive Summary:</strong> " + summary + "</p>"
+        body_html += f'<p>Click <a href="https://docs.google.com/document/d/{doc_id}">here</a> to read.</p>'
         body_html += "<hr>"
-        body_html += "<h2>Executive Summary</h2>"
-        body_html += f"<p>{summary}</p><hr>"
+
     body_html += "<p>--This was an automated email. Please do not reply. However, enjoy this joke--</p>"
     body_html += f"<p>{pyjokes.get_joke(language='en', category='neutral')}</p>"
+
     message = Mail(
         from_email=sender_email,
         to_emails=email_address,
@@ -172,6 +175,7 @@ def build_and_send_email(
         raise e
 
 
+
 def entrypoint() -> None:
     """Entrypoint for GDoc Summaries"""
 
@@ -180,6 +184,7 @@ def entrypoint() -> None:
     doc_ids = get_doc_ids_from_drive(creds)
 
     # Do the work for each GDoc
+    summaries = []
     for doc_id in doc_ids:
         document = get_doc_from_id(creds, doc_id)
         contents = document.get("body", {}).get("content", [])
@@ -188,14 +193,11 @@ def entrypoint() -> None:
             continue
 
         executive_summary = find_executive_summary(contents)
-        for email in constants.TDRB_SUBSCRIBERS:
-            print(f"SENDING EMAIL TO: {email}")
-            build_and_send_email(
-                email_address=email,
-                doc_name=document["title"],
-                doc_id=document["documentId"],
-                summary=executive_summary,
-            )
+        summaries.append((document["title"], document["documentId"], executive_summary))
+
+    for email in constants.TDRB_SUBSCRIBERS:
+        print(f"SENDING EMAIL TO: {email}")
+        build_and_send_email(email_address=email, summaries=summaries)
 
 
 if __name__ == "__main__":
