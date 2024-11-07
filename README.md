@@ -2,8 +2,9 @@
 Send emails with LLM Summaries of Google Documentations from your Org.
 
 - This script scans Google Docs that it has been given access to.
-- It will summarize the document using an LLM.
-- It will also summarize the conversation happening in the document.
+- It will summarize the document using an LLM. - TODO
+- It will also summarize the conversation happening in the document. - TODO
+- It saves previous summaries into a SQLLite DB so it doesn't have to continue regenerating the same summary. - TODO
 - This can be run on a daily Cron Job to help folks keep up to date with newly written documentation
 
 
