@@ -16,7 +16,7 @@ from googleapiclient.errors import HttpError
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
-from gdoc_summaries.lib import constants
+from gdoc_summaries.lib import constants, db
 
 LOGGER = logging.getLogger(__name__)
 
@@ -157,7 +157,8 @@ def build_and_send_email(
     """Use Sendgrid's API Client to send an email"""
     sender_email = "danny.vu@cloverhealth.com"
     subject = "Technical Documentation Summary"
-    body_html = "<p>Greetings!</p><p>Here are summaries of recent documents to review.</p>"
+    body_html = "<p>Greetings!</p><p>Here are summaries of recent documents to review:</p>"
+    body_html += "<hr>"
 
     for doc_name, doc_id, summary in summaries:
         body_html += f'<h3>{doc_name}</h3>'
@@ -186,9 +187,11 @@ def build_and_send_email(
         raise e
 
 
-
 def entrypoint() -> None:
     """Entrypoint for GDoc Summaries"""
+
+    # Set up the database
+    db.setup_database()
 
     # Get the Creds and potential Google Doc IDs
     creds = get_credentials(creds_path=CREDS_PATH, scopes=SCOPES)
@@ -197,6 +200,13 @@ def entrypoint() -> None:
     # Do the work for each GDoc
     summaries = []
     for doc_id in doc_ids:
+        existing_summary = db.get_summary_from_db(doc_id)
+        if existing_summary:
+            print(f"Summary exists for {doc_id=}, skipping generation.")
+            document = get_doc_from_id(creds, doc_id)
+            summaries.append((document["title"], document["documentId"], existing_summary))
+            continue
+
         document = get_doc_from_id(creds, doc_id)
         contents = document.get("body", {}).get("content", [])
         if not contents:
@@ -204,7 +214,8 @@ def entrypoint() -> None:
             continue
 
         llm_summary = generate_llm_summary(contents)
-
+        db.save_summary_to_db(document["documentId"], document["title"], llm_summary)
+        
         summaries.append((document["title"], document["documentId"], llm_summary))
 
     for email in constants.TDRB_SUBSCRIBERS:

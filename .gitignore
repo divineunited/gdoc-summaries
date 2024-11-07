@@ -125,3 +125,6 @@ ipython_config.py
 
 ### Binary Wheels
 dist/
+
+### Sqlite
+*.db
