@@ -46,8 +46,8 @@ def test_get_credentials_refresh():
         assert creds == expired_creds
 
 
-def test_get_doc_ids_from_drive_success():
-    """Test get_doc_ids_from_drive returns doc ids successfully"""
+def test_get_doc_ids_dates_from_drive_success():
+    """Test get_doc_ids_dates_from_drive returns doc ids successfully"""
     mock_service = Mock()
     mock_service.files().list().execute.return_value = {
         "files": [{"id": "1"}, {"id": "2"}, {"id": "3"}],
@@ -57,12 +57,12 @@ def test_get_doc_ids_from_drive_success():
     mock_service.files().list_next.return_value = None
 
     with patch("gdoc_summaries.run.build", return_value=mock_service):
-        doc_ids = run.get_doc_ids_from_drive(Credentials)
+        doc_ids = run.get_doc_ids_dates_from_drive(Credentials)
         assert doc_ids == ["1", "2", "3"]
 
 
-def test_get_doc_ids_from_drive_no_files():
-    """Test run.get_doc_ids_from_drive returns empty list when no files found"""
+def test_get_doc_ids_dates_from_drive_no_files():
+    """Test run.get_doc_ids_dates_from_drive returns empty list when no files found"""
     mock_service = Mock()
     mock_service.files().list().execute.return_value = {
         "files": [],
@@ -72,18 +72,18 @@ def test_get_doc_ids_from_drive_no_files():
     mock_service.files().list_next.return_value = None
 
     with patch("gdoc_summaries.run.build", return_value=mock_service):
-        doc_ids = run.get_doc_ids_from_drive(Credentials)
+        doc_ids = run.get_doc_ids_dates_from_drive(Credentials)
         assert doc_ids == []
 
 
-def test_get_doc_ids_from_drive_http_error():
-    """Test run.get_doc_ids_from_drive raises HttpError"""
+def test_get_doc_ids_dates_from_drive_http_error():
+    """Test run.get_doc_ids_dates_from_drive raises HttpError"""
     mock_service = Mock()
     mock_service.files().list().execute.side_effect = HttpError(Mock(), b"error")
 
     with patch("gdoc_summaries.run.build", return_value=mock_service):
         with pytest.raises(HttpError):
-            run.get_doc_ids_from_drive(Credentials)
+            run.get_doc_ids_dates_from_drive(Credentials)
 
 
 def test_get_doc_from_id_success():

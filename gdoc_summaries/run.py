@@ -42,28 +42,28 @@ def get_credentials(creds_path: str, scopes: list[str]) -> Credentials:
     return creds
 
 
-def get_doc_ids_from_drive(creds: Credentials) -> list[str]:
+def get_doc_ids_dates_from_drive(creds: Credentials) -> list[tuple[str, str]]:
     """
     This function gets all relevant Google Docs that it has access to
     from the Google Drive API
+
+    The Drive API gives date_created information as well.
+    Which does not exist in the Docs API.
     """
-    # Get the date 30 days ago
-    past_date = datetime.now() - timedelta(days=30)
+    past_date = datetime.now() - timedelta(days=120)
     past_date_str = (
         past_date.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
     )  # Format it as RFC 3339 timestamp
 
-    doc_ids = []
+    doc_infos = []
     try:
         # Call the Drive v3 API
         service = discovery.build("drive", "v3", credentials=creds)
-        # Query for Google Docs modified or created in the last 30 days
-        # -- change to createdTime if modified is too noisy
-        # -- remove the q object if you dont want to filter at all
         request = service.files().list(
-            q=f"mimeType='application/vnd.google-apps.document' and modifiedTime >= '{past_date_str}'",
+            q=f"mimeType='application/vnd.google-apps.document' and createdTime >= '{past_date_str}'",
             pageSize=100,
-            fields="nextPageToken, files(id, name)",
+            orderBy="createdTime desc",
+            fields="nextPageToken, files(id, name, createdTime)",
         )
 
         while request is not None:
@@ -71,17 +71,17 @@ def get_doc_ids_from_drive(creds: Credentials) -> list[str]:
             items: list[dict] = results.get("files", [])
 
             if items:
-                doc_ids.extend([item["id"] for item in items])
+                doc_infos.extend([(item["id"], item["createdTime"]) for item in items])
 
             request = service.files().list_next(request, results)
     except HttpError as error:
         print(f"An error occurred: {error}")
         raise
 
-    if not doc_ids:
+    if not doc_infos:
         LOGGER.warning("No files found.")
 
-    return doc_ids
+    return doc_infos
 
 
 def get_doc_from_id(creds: Credentials, document_id: str) -> dict:
@@ -152,7 +152,7 @@ def generate_llm_summary(contents: list[dict]) -> str:
 
 
 def build_and_send_email(
-    *, email_address: str, summaries: list[tuple[str, str, str]]
+    *, email_address: str, summaries: list[tuple[str, str, str, str]]
 ):
     """Use Sendgrid's API Client to send an email"""
     sender_email = "danny.vu@cloverhealth.com"
@@ -160,8 +160,9 @@ def build_and_send_email(
     body_html = "<p>Greetings!</p><p>Here are summaries of recent documents to review:</p>"
     body_html += "<hr>"
 
-    for doc_name, doc_id, summary in summaries:
+    for doc_name, doc_id, created_time, summary in summaries:
         body_html += f'<h3>{doc_name}</h3>'
+        body_html += f'<p><strong>Date Created:</strong> {created_time}</p>'
         if summary:
             body_html += "<p>" + summary + "</p>"
         body_html += f'<p>Click <a href="https://docs.google.com/document/d/{doc_id}">here</a> to read.</p>'
@@ -193,18 +194,18 @@ def entrypoint() -> None:
     # Set up the database
     db.setup_database()
 
-    # Get the Creds and potential Google Doc IDs
+    # Get the Creds and potential Google Doc IDs along with creation dates
     creds = get_credentials(creds_path=CREDS_PATH, scopes=SCOPES)
-    doc_ids = get_doc_ids_from_drive(creds)
+    doc_infos = get_doc_ids_dates_from_drive(creds)
 
     # Do the work for each GDoc
     summaries = []
-    for doc_id in doc_ids:
+    for doc_id, created_time in doc_infos:
         existing_summary = db.get_summary_from_db(doc_id)
         if existing_summary:
             print(f"Summary exists for {doc_id=}, skipping generation.")
             document = get_doc_from_id(creds, doc_id)
-            summaries.append((document["title"], document["documentId"], existing_summary))
+            summaries.append((document["title"], document["documentId"], created_time, existing_summary))
             continue
 
         document = get_doc_from_id(creds, doc_id)
@@ -216,7 +217,7 @@ def entrypoint() -> None:
         llm_summary = generate_llm_summary(contents)
         db.save_summary_to_db(document["documentId"], document["title"], llm_summary)
         
-        summaries.append((document["title"], document["documentId"], llm_summary))
+        summaries.append((document["title"], document["documentId"], created_time, llm_summary))
 
     for email in constants.TDRB_SUBSCRIBERS:
         print(f"SENDING EMAIL TO: {email}")
