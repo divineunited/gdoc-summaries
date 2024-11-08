@@ -16,7 +16,7 @@ from googleapiclient.errors import HttpError
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
-from gdoc_summaries.lib import constants, db
+from gdoc_summaries.libs import constants, db
 
 LOGGER = logging.getLogger(__name__)
 
