@@ -6,6 +6,11 @@ Send emails with LLM Summaries of Google Documentations from your Org.
 - It saves previous summaries into a SQLLite DB so it doesn't have to continue regenerating the same summary.
 - It sends the most recent document first in the email and you can configure how recent the docs are.
 - This can be run on a daily Cron Job to help folks keep up to date with newly written documentation
+- Have the SUBSCRIBERS list of emails as a local file next to your service credentials TODO
+- Append the Past Summaries that have been sent out to Confluence TODO
+    - This way: new subscribers can get old context from one place
+    - This way: All emails are the same to all subscribers and conversations can be had around them.
+- Know what has been sent already so it doesn't get sent again TODO
 
 
 ## For Developers

@@ -4,12 +4,8 @@ TDRB_SUBSCRIBERS = [
     "danny.vu@cloverhealth.com",
     # "hafsa.khalid@cloverhealth.com",
     # michele
-    # "alex.ng@cloverhealth.com",
-    # "ethan.wai@cloverhealth.com",
-    # "luke.liu@cloverhealth.com",
+    # Hin
     # "paul.zumbrun@cloverhealth.com",
-    # "conrad.wai@cloverhealth.com",
-    # "david.tsay@cloverhealth.com",
     # "david.zhu@cloverhealth.com",
 ]
 
