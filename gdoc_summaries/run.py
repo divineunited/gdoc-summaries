@@ -200,7 +200,10 @@ def entrypoint() -> None:
     for doc_id, created_time in doc_infos:
         existing_summary = db.get_summary_from_db(doc_id)
         if existing_summary:
-            print(f"Summary exists for {doc_id=}, skipping generation.")
+            sent_status = db.get_summary_sent_status(doc_id)
+            if sent_status == 1:
+                print(f"Summary has already been sent for {doc_id=}, skipping.")
+                continue
             document = get_doc_from_id(creds, doc_id)
             summaries.append((document["title"], document["documentId"], created_time, existing_summary))
             continue
@@ -213,12 +216,19 @@ def entrypoint() -> None:
 
         llm_summary = generate_llm_summary(contents)
         db.save_summary_to_db(document["documentId"], document["title"], llm_summary)
-        
         summaries.append((document["title"], document["documentId"], created_time, llm_summary))
+
+    if not summaries:
+        print("No new summaries to send.")
+        return
 
     for email in constants.get_subscribers():
         print(f"SENDING EMAIL TO: {email}")
         build_and_send_email(email_address=email, summaries=summaries)
+
+    # Mark all processed summaries as sent
+    for document in summaries:
+        db.mark_summary_as_sent(document[1])
 
 
 if __name__ == "__main__":
