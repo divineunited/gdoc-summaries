@@ -39,7 +39,7 @@ def save_summary_to_db(document_id: str, title: str, summary: str):
     conn.commit()
     conn.close()
 
-def get_summary_sent_status(document_id: str):
+def get_summary_sent_status(document_id: str) -> 0|1:
     conn = sqlite3.connect("summaries.db")
     cursor = conn.cursor()
     cursor.execute("SELECT sent FROM summaries WHERE document_id = ?", (document_id,))
