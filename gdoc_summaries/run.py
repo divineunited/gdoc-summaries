@@ -26,9 +26,6 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive.metadata.readonly",
 ]
 
-# TODO: deployment considerations:
-CREDS_PATH = os.path.expanduser("~/Downloads/eng-sandbox-30f6bd0e093d.json")
-
 
 def get_credentials(creds_path: str, scopes: list[str]) -> Credentials:
     """Get Google API Credentials"""
@@ -195,7 +192,7 @@ def entrypoint() -> None:
     db.setup_database()
 
     # Get the Creds and potential Google Doc IDs along with creation dates
-    creds = get_credentials(creds_path=CREDS_PATH, scopes=SCOPES)
+    creds = get_credentials(creds_path=constants.CREDS_PATH, scopes=SCOPES)
     doc_infos = get_doc_ids_dates_from_drive(creds)
 
     # Do the work for each GDoc
@@ -219,7 +216,7 @@ def entrypoint() -> None:
         
         summaries.append((document["title"], document["documentId"], created_time, llm_summary))
 
-    for email in constants.TDRB_SUBSCRIBERS:
+    for email in constants.get_subscribers():
         print(f"SENDING EMAIL TO: {email}")
         build_and_send_email(email_address=email, summaries=summaries)
 
