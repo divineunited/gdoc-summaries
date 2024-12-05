@@ -102,7 +102,7 @@ def generate_llm_summary(contents: list[dict]) -> str:
     """Generate a summary of the document content using Azure OpenAI"""
 
     prompt = (
-        "As a professional summarizer, create a concise and comprehensive "
+        "As a professional summarizer, create a concise "
         "summary of the provided text while adhering to these guidelines:\n"
         "If there is an author, before the summary, add: Author(s): Name(s)\n"
         "Craft a summary that is detailed, thorough, in-depth, and complex, "
