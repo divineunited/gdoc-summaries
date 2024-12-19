@@ -14,12 +14,12 @@ def entrypoint() -> None:
     db.setup_database()
 
     creds = gdoc_client.get_credentials(creds_path=constants.CREDS_PATH, scopes=gdoc_client.SCOPES)
-    document_ids = constants.get_document_ids()
+    document_info = constants.get_document_id_and_date()
     service = discovery.build("docs", "v1", credentials=creds)
 
     # Do the work for each GDoc
     summaries = []
-    for document_id in document_ids:
+    for document_id, date_published in document_info:
         existing_summary = db.get_summary_from_db(document_id)
         if existing_summary:
             sent_status = db.get_summary_sent_status(document_id)
@@ -32,8 +32,8 @@ def entrypoint() -> None:
         document = gdoc_client.get_document_from_id(service, document_id)
         llm_summary = llm.generate_llm_summary(document)
         
-        db.save_summary_to_db(document["documentId"], document["title"], llm_summary)
-        summaries.append((document["title"], document["documentId"], llm_summary))
+        db.save_summary_to_db(document["documentId"], document["title"], llm_summary, date_published)
+        summaries.append((document["title"], document["documentId"], llm_summary, date_published))
     
     if not summaries:
         print("No new summaries to send.")

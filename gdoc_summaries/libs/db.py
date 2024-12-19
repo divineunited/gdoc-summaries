@@ -10,6 +10,7 @@ def setup_database():
             document_id TEXT PRIMARY KEY,
             title TEXT,
             summary TEXT,
+            date_published TEXT,
             sent INTEGER DEFAULT 0
         )
     """)
@@ -28,14 +29,18 @@ def get_summary_from_db(document_id: str):
     return None
 
 
-def save_summary_to_db(document_id: str, title: str, summary: str):
+def save_summary_to_db(document_id: str, title: str, summary: str, date_published: str):
     conn = sqlite3.connect("summaries.db")
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO summaries (document_id, title, summary, sent) 
-        VALUES (?, ?, ?, 0) 
-        ON CONFLICT(document_id) DO UPDATE SET title=excluded.title, summary=excluded.summary, sent=0
-    """, (document_id, title, summary))
+        INSERT INTO summaries (document_id, title, summary, date_published, sent) 
+        VALUES (?, ?, ?, ?, 0) 
+        ON CONFLICT(document_id) DO UPDATE SET 
+            title=excluded.title, 
+            summary=excluded.summary, 
+            date_published=excluded.date_published,
+            sent=0
+    """, (document_id, title, summary, date_published))
     conn.commit()
     conn.close()
 

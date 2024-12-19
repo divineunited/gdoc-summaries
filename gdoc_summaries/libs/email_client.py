@@ -11,7 +11,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def build_and_send_email(
-    *, email_address: str, summaries: list[tuple[str, str, str]]
+    *, email_address: str, summaries: list[tuple[str, str, str, str]]
 ):
     """Use Sendgrid's API Client to send an email"""
     sender_email = "danny.vu@cloverhealth.com"
@@ -19,8 +19,9 @@ def build_and_send_email(
     body_html = "<p>Hi everyone!</p><p>Here are summaries of recent technical documents to review:</p>"
     body_html += "<hr>"
 
-    for doc_name, doc_id, summary in summaries:
+    for doc_name, doc_id, summary, date_published in summaries:
         body_html += f'<h3>{doc_name}</h3>'
+        body_html += f'<p><em>Published: {date_published}</em></p>'
         if summary:
             body_html += "<p>" + summary + "</p>"
         body_html += f'<p>Click <a href="https://docs.google.com/document/d/{doc_id}">here</a> to read.</p>'
