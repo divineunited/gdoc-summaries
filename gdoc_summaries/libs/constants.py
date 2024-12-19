@@ -27,3 +27,22 @@ def get_subscribers() -> list[str]:
         raise ValueError("The subscribers list is empty. Please ensure the JSON file has valid entries.")
 
     return subscribers
+
+def get_document_ids() -> list[str]:
+    """Retrieve the list of document IDs from a JSON file with validation."""
+    json_file_path = os.path.expanduser("~/Downloads/gdoc_summary_files/document_ids.json")
+
+    if not os.path.exists(json_file_path):
+        raise FileNotFoundError(f"The document IDs JSON file was not found at {json_file_path}.")
+
+    try:
+        with open(json_file_path, "r") as file:
+            data = json.load(file)
+    except json.JSONDecodeError as e:
+        raise ValueError("The JSON file is not parsable. Please check its contents.") from e
+
+    document_ids = data.get("document_ids", [])
+    if not document_ids:
+        raise ValueError("The document IDs list is empty. Please ensure the JSON file has valid entries.")
+
+    return document_ids

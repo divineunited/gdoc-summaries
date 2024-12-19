@@ -1,15 +1,11 @@
 # gdoc-summaries
 Send emails with LLM Summaries of Google Documentations from your Org.
 
-- This script scans Google Docs that it has been given access to.
+- This script goes through Google Docs via a list of IDs in a file.
 - It will summarize the document using an LLM.
 - It saves previous summaries into a SQLLite DB so it doesn't have to continue regenerating the same summary.
-- It sends the most recent document first in the email and you can configure how recent the docs are.
 - This can be run on a daily Cron Job to help folks keep up to date with newly written documentation
 - It knows what has been sent already so it doesn't get sent again
-- Append the Past Summaries that have been sent out to Confluence TODO
-    - This way: new subscribers can get old context from one place
-    - This way: All emails are the same to all subscribers and conversations can be had around them.
 
 
 ## For Developers
@@ -20,4 +16,4 @@ Send emails with LLM Summaries of Google Documentations from your Org.
 - ensure you have the SENDGRID_API_KEY in your env variables
 - have a service account and the google service credentials available to the script
 - Share each doc to the service account in the `Share` UX for the Google Doc
-- Run it via: `PYTHONPATH=. python gdoc_summaries/run.py`
+- Run it via: `PYTHONPATH=. python gdoc_summaries/tdd_summaries.py`
