@@ -17,3 +17,4 @@ Send emails with LLM Summaries of Google Documentations from your Org.
 - have a service account and the google service credentials available to the script
 - Share each doc to the service account in the `Share` UX for the Google Doc
 - Run it via: `PYTHONPATH=. python gdoc_summaries/tdd_summaries.py`
+- To reset your DB: `PYTHONPATH=. python gdoc_summaries/reset_database.py`
