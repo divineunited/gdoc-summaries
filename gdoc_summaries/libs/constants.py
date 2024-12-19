@@ -1,4 +1,5 @@
 """Constants for gdoc summaries"""
+import dataclasses
 import json
 import os
 import re
@@ -10,9 +11,22 @@ AZURE_MODEL_ENGINE = "gpt-4o"
 # TODO: deployment considerations:
 CREDS_PATH = os.path.expanduser("~/Downloads/gdoc_summary_files/eng-sandbox-30f6bd0e093d.json")
 
+@dataclasses.dataclass
+class DocumentInfo:
+    """Contains metadata about a Google Document including its ID and publication date."""
+    document_id: str
+    date_published: str
+
+@dataclasses.dataclass
+class Summary:
+    """Contains metadata about a summary including its ID, title, and content."""
+    document_id: str
+    title: str
+    content: str
+    date_published: str
 def get_subscribers() -> list[str]:
     """Retrieve the list of subscribers from a JSON file with validation."""
-    json_file_path = os.path.expanduser("~/Downloads/gdoc_summary_files/subscribers.json")
+    json_file_path = os.path.expanduser("~/Downloads/gdoc_summary_files/tdd_subscribers.json")
 
     if not os.path.exists(json_file_path):
         raise FileNotFoundError(f"The subscribers JSON file was not found at {json_file_path}.")
@@ -29,7 +43,7 @@ def get_subscribers() -> list[str]:
 
     return subscribers
 
-def _extract_doc_info(doc_entry: dict) -> tuple[str, str]:
+def _extract_doc_info(doc_entry: dict) -> DocumentInfo:
     """Extract document ID and published date from a document entry."""
     url = doc_entry.get("url")
     date_published = doc_entry.get("date_published")
@@ -43,12 +57,17 @@ def _extract_doc_info(doc_entry: dict) -> tuple[str, str]:
     pattern = r"/document/d/([a-zA-Z0-9_-]+)"
     match = re.search(pattern, url)
     if match:
-        return match.group(1), date_published
+        return DocumentInfo(document_id=match.group(1), date_published=date_published)
     raise ValueError(f"Could not extract document ID from URL: {url}")
 
-def get_document_id_and_date() -> list[tuple[str, str]]:
-    """Retrieve the list of document IDs and their published dates from a JSON file."""
-    json_file_path = os.path.expanduser("~/Downloads/gdoc_summary_files/documents.json")
+def get_document_id_and_date() -> list[DocumentInfo]:
+    """
+    Retrieve document IDs and published dates from a JSON configuration file.
+    
+    Returns:
+        list[DocumentInfo]: List of document metadata including IDs and publication dates
+    """
+    json_file_path = os.path.expanduser("~/Downloads/gdoc_summary_files/tdd_documents.json")
 
     if not os.path.exists(json_file_path):
         raise FileNotFoundError(f"The document IDs JSON file was not found at {json_file_path}.")

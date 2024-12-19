@@ -1,6 +1,8 @@
 """SQLite DB Tools"""
 import sqlite3
 
+from gdoc_summaries.libs import constants
+
 
 def setup_database():
     conn = sqlite3.connect("summaries.db")
@@ -29,7 +31,7 @@ def get_summary_from_db(document_id: str):
     return None
 
 
-def save_summary_to_db(document_id: str, title: str, summary: str, date_published: str):
+def save_summary_to_db(summary: constants.Summary):
     conn = sqlite3.connect("summaries.db")
     cursor = conn.cursor()
     cursor.execute("""
@@ -40,7 +42,7 @@ def save_summary_to_db(document_id: str, title: str, summary: str, date_publishe
             summary=excluded.summary, 
             date_published=excluded.date_published,
             sent=0
-    """, (document_id, title, summary, date_published))
+    """, (summary.document_id, summary.title, summary.content, summary.date_published))
     conn.commit()
     conn.close()
 
