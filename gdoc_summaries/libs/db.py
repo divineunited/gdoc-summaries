@@ -20,14 +20,19 @@ def setup_database():
     conn.close()
 
 
-def get_summary_from_db(document_id: str):
+def get_summary_from_db(document_id: str) -> constants.Summary | None:
     conn = sqlite3.connect("summaries.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT summary FROM summaries WHERE document_id = ?", (document_id,))
+    cursor.execute("SELECT title, summary, date_published FROM summaries WHERE document_id = ?", (document_id,))
     result = cursor.fetchone()
     conn.close()
     if result:
-        return result[0]
+        return constants.Summary(
+            document_id=document_id,
+            title=result[0],
+            content=result[1],
+            date_published=result[2]
+        )
     return None
 
 

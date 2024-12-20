@@ -1,6 +1,9 @@
 """LLM Based tooling"""
 
 import logging
+import time
+from functools import wraps
+from typing import Callable
 
 import markdown
 import requests
@@ -11,6 +14,32 @@ from gdoc_summaries.libs import constants
 LOGGER = logging.getLogger(__name__)
 
 
+def retry_with_backoff(retries: int, backoff_in_seconds: list[int]) -> Callable:
+    """
+    Retry decorator with specified backoff times
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for i in range(retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    # Don't retry if it's a context length error
+                    if "context_length_exceeded" in str(e):
+                        raise e
+                    
+                    if i == retries:  # Last attempt
+                        raise e
+                    wait_time = backoff_in_seconds[i]
+                    print(f"Attempt {i + 1} failed. Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+            return None  # Should never reach here
+        return wrapper
+    return decorator
+
+
+@retry_with_backoff(retries=2, backoff_in_seconds=[35, 65])
 def generate_llm_summary(document: dict) -> str:
     """Generate a summary of the document content using Azure OpenAI"""
 
@@ -63,4 +92,4 @@ def generate_llm_summary(document: dict) -> str:
         return html_content
     else:
         print(f"Error in LLM request: {response.status_code}, {response.text}")
-        return "Error generating summary."
+        raise RuntimeError(f"Error in LLM request: {response.status_code}, {response.text}")

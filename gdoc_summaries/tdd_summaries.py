@@ -27,19 +27,26 @@ def entrypoint() -> None:
                 print(f"Summary has already been sent for {document_info.document_id=}, skipping.")
                 continue
             else:
-                raise RuntimeError(f"Summary has not been sent for {document_info.document_id=}, but it exists in the DB.")
-
-        document = gdoc_client.get_document_from_id(service, document_info.document_id)
-        llm_summary = llm.generate_llm_summary(document)
-        
-        summary = constants.Summary(
-                document_id=document_info.document_id,
-                title=document["title"],
-                content=llm_summary,
-                date_published=document_info.date_published,
-            )
-        db.save_summary_to_db(summary)
-        summaries.append(summary)
+                print(f"Summary has not been sent for {document_info.document_id=} but exists in the DB. Will send it.")
+                summaries.append(existing_summary)
+        else:
+            try:
+                document = gdoc_client.get_document_from_id(service, document_info.document_id)
+                llm_summary = llm.generate_llm_summary(document)
+                
+                summary = constants.Summary(
+                        document_id=document_info.document_id,
+                        title=document["title"],
+                        content=llm_summary,
+                        date_published=document_info.date_published,
+                    )
+                db.save_summary_to_db(summary)
+                summaries.append(summary)
+            except RuntimeError as e:
+                if "context_length_exceeded" in str(e):
+                    print(f"Skipping document {document_info.document_id} due to context length exceeded")
+                    continue
+                raise  # Re-raise other RuntimeErrors
 
     if not summaries:
         print("No new summaries to send.")
