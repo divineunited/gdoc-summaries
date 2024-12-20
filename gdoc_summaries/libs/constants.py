@@ -1,4 +1,30 @@
-"""Constants for gdoc summaries"""
+"""
+Constants for gdoc summaries
+
+- `tdd_documents.json` is a list of Google Docs that you want to summarize
+
+The format of the JSON is:
+{
+    "document_data": [
+        {
+        "url": "https://docs.google.com/document/d/url_of_doc/edit?tab=t.0", 
+        "date_published": "date_published_of_doc"
+        },
+        ...
+    ]
+}
+
+- `tdd_subscribers.json` is a list of email addresses you want to send to
+
+The format of the JSON is:
+{
+    "subscribers": [
+        "email_address_1",
+        "email_address_2",
+        ...
+    ]
+}
+"""
 import dataclasses
 import json
 import os

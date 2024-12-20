@@ -1,4 +1,4 @@
-"""LLM Based tooling"""
+"""Email client for sending emails"""
 
 import logging
 import os

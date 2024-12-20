@@ -15,6 +15,7 @@ Send emails with LLM Summaries of Google Documentations from your Org.
 ## Running it:
 - ensure you have the SENDGRID_API_KEY in your env variables
 - have a service account and the google service credentials available to the script
-- Share each doc to the service account in the `Share` UX for the Google Doc
+- populate the `gdoc_summaries/tdd_documents.json` with the document IDs you want to summarize
+- populate the `gdoc_summaries/tdd_subscribers.json` with the email addresses you want to send to
 - Run it via: `PYTHONPATH=. python gdoc_summaries/tdd_summaries.py`
 - To reset your DB: `PYTHONPATH=. python gdoc_summaries/reset_database.py`
