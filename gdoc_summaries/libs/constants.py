@@ -50,7 +50,8 @@ class Summary:
     title: str
     content: str
     date_published: str
-def get_subscribers() -> list[str]:
+
+def get_tdd_subscribers() -> list[str]:
     """Retrieve the list of subscribers from a JSON file with validation."""
     json_file_path = os.path.expanduser("~/Downloads/gdoc_summary_files/tdd_subscribers.json")
 
@@ -86,7 +87,7 @@ def _extract_doc_info(doc_entry: dict) -> DocumentInfo:
         return DocumentInfo(document_id=match.group(1), date_published=date_published)
     raise ValueError(f"Could not extract document ID from URL: {url}")
 
-def get_document_id_and_date() -> list[DocumentInfo]:
+def get_tdd_document_id_and_date() -> list[DocumentInfo]:
     """
     Retrieve document IDs and published dates from a JSON configuration file.
     

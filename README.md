@@ -7,6 +7,8 @@ Send emails with LLM Summaries of Google Documentations from your Org.
 - This can be run on a daily Cron Job to help folks keep up to date with newly written documentation
 - It knows what has been sent already so it doesn't get sent again
 
+- It can send various types of summaries to different groups of people
+
 
 ## For Developers
 - Create a python virtual env

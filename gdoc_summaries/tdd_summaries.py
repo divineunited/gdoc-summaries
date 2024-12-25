@@ -14,7 +14,7 @@ def entrypoint() -> None:
     db.setup_database()
 
     creds = gdoc_client.get_credentials(creds_path=constants.CREDS_PATH, scopes=gdoc_client.SCOPES)
-    document_infos: list[constants.DocumentInfo] = constants.get_document_id_and_date()
+    document_infos: list[constants.DocumentInfo] = constants.get_tdd_document_id_and_date()
     service = discovery.build("docs", "v1", credentials=creds)
 
     # Do the work for each GDoc
@@ -52,7 +52,7 @@ def entrypoint() -> None:
         print("No new summaries to send.")
         return
 
-    for email_address in constants.get_subscribers():
+    for email_address in constants.get_tdd_subscribers():
         print(f"SENDING EMAIL TO: {email_address}")
         email_client.build_and_send_email(email_address=email_address, summaries=summaries)
 

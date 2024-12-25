@@ -51,6 +51,7 @@ def save_summary_to_db(summary: constants.Summary):
     conn.commit()
     conn.close()
 
+
 def get_summary_sent_status(document_id: str) -> 0|1:
     conn = sqlite3.connect("summaries.db")
     cursor = conn.cursor()
@@ -60,6 +61,7 @@ def get_summary_sent_status(document_id: str) -> 0|1:
     if result:
         return result[0]
     return None
+
 
 def mark_summary_as_sent(document_id: str):
     conn = sqlite3.connect("summaries.db")

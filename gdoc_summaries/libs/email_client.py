@@ -18,7 +18,7 @@ def build_and_send_email(
     """Use Sendgrid's API Client to send an email"""
     sender_email = "danny.vu@cloverhealth.com"
     subject = "Technical Documentation Summary"
-    body_html = "<p>Hi everyone!</p><p>Here are AI generated summaries of recent technical documents to review:</p>"
+    body_html = "<p>Hi everyone!</p><p>Here are AI generated summaries of recent documents to review:</p>"
     body_html += "<hr>"
 
     for summary in summaries:
@@ -29,8 +29,9 @@ def build_and_send_email(
         body_html += f'<p>Click <a href="https://docs.google.com/document/d/{summary.document_id}">here</a> to read.</p>'
         body_html += "<hr>"
 
-    body_html += '<p>--If a summary was sent. It will not be sent again. See <a href="https://cloverhealth.atlassian.net/wiki/x/CACt0Q">here</a> for previously sent TDDs--</p>'
-    body_html += "<p>--Also, enjoy this randomly generated joke:--</p>"
+    body_html += '<p>If a summary was sent. It will not be sent again. </p>'
+    body_html += '<p>See <a href="https://cloverhealth.atlassian.net/wiki/x/CACt0Q">here</a> for previously sent TDDs</p>'
+    body_html += "<p>Also, enjoy this randomly generated joke:</p>"
     body_html += f"<p>{pyjokes.get_joke(language='en', category='neutral')}</p>"
 
     message = Mail(
