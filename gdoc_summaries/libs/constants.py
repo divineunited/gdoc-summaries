@@ -62,25 +62,6 @@ class Summary:
     date_published: str
     summary_type: SummaryType
 
-def get_tdd_subscribers() -> list[str]:
-    """Retrieve the list of subscribers from a JSON file with validation."""
-    json_file_path = os.path.expanduser("~/Downloads/gdoc_summary_files/tdd_subscribers.json")
-
-    if not os.path.exists(json_file_path):
-        raise FileNotFoundError(f"The subscribers JSON file was not found at {json_file_path}.")
-
-    try:
-        with open(json_file_path, "r") as file:
-            data = json.load(file)
-    except json.JSONDecodeError as e:
-        raise ValueError("The JSON file is not parsable. Please check its contents.") from e
-
-    subscribers = data.get("subscribers", [])
-    if not subscribers:
-        raise ValueError("The subscribers list is empty. Please ensure the JSON file has valid entries.")
-
-    return subscribers
-
 def _extract_doc_info(doc_entry: dict) -> DocumentInfo:
     """Extract document ID and published date from a document entry."""
     url = doc_entry.get("url")
@@ -98,14 +79,36 @@ def _extract_doc_info(doc_entry: dict) -> DocumentInfo:
         return DocumentInfo(document_id=match.group(1), date_published=date_published)
     raise ValueError(f"Could not extract document ID from URL: {url}")
 
-def get_tdd_document_id_and_date() -> list[DocumentInfo]:
+
+def get_subscribers(summary_type: SummaryType) -> list[str]:
+    """Retrieve the list of subscribers from a JSON file with validation."""
+    type_name = summary_type.value.lower()
+    json_file_path = os.path.expanduser(f"~/Downloads/gdoc_summary_files/{type_name}_subscribers.json")
+
+    if not os.path.exists(json_file_path):
+        raise FileNotFoundError(f"The subscribers JSON file was not found at {json_file_path}.")
+
+    try:
+        with open(json_file_path, "r") as file:
+            data = json.load(file)
+    except json.JSONDecodeError as e:
+        raise ValueError("The JSON file is not parsable. Please check its contents.") from e
+
+    subscribers = data.get("subscribers", [])
+    if not subscribers:
+        raise ValueError("The subscribers list is empty. Please ensure the JSON file has valid entries.")
+
+    return subscribers
+
+def get_doc_info(summary_type: SummaryType) -> list[DocumentInfo]:
     """
     Retrieve document IDs and published dates from a JSON configuration file.
     
     Returns:
         list[DocumentInfo]: List of document metadata including IDs and publication dates
     """
-    json_file_path = os.path.expanduser("~/Downloads/gdoc_summary_files/tdd_documents.json")
+    type_name = summary_type.value.lower()
+    json_file_path = os.path.expanduser(f"~/Downloads/gdoc_summary_files/{type_name}_documents.json")
 
     if not os.path.exists(json_file_path):
         raise FileNotFoundError(f"The document IDs JSON file was not found at {json_file_path}.")
