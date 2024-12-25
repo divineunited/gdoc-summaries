@@ -29,6 +29,7 @@ import dataclasses
 import json
 import os
 import re
+from enum import Enum
 
 AZURE_API_BASE = "https://clover-openai-useast2.openai.azure.com/"
 AZURE_API_VERSION = "2023-07-01-preview"
@@ -36,6 +37,15 @@ AZURE_MODEL_ENGINE = "gpt-4o"
 
 # TODO: deployment considerations:
 CREDS_PATH = os.path.expanduser("~/Downloads/gdoc_summary_files/eng-sandbox-30f6bd0e093d.json")
+
+class SummaryType(Enum):
+    TDD = "TDD"
+    PRD = "PRD"
+    BIWEEKLY = "BIWEEKLY"
+    
+    def __str__(self):
+        return self.value
+
 
 @dataclasses.dataclass
 class DocumentInfo:
@@ -50,6 +60,7 @@ class Summary:
     title: str
     content: str
     date_published: str
+    summary_type: SummaryType
 
 def get_tdd_subscribers() -> list[str]:
     """Retrieve the list of subscribers from a JSON file with validation."""

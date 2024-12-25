@@ -39,6 +39,7 @@ def entrypoint() -> None:
                         title=document["title"],
                         content=llm_summary,
                         date_published=document_info.date_published,
+                        summary_type=constants.SummaryType.TDD,
                     )
                 db.save_summary_to_db(summary)
                 summaries.append(summary)
@@ -56,7 +57,6 @@ def entrypoint() -> None:
         print(f"SENDING EMAIL TO: {email_address}")
         email_client.build_and_send_email(email_address=email_address, summaries=summaries)
 
-    # Mark all processed summaries as sent
     for summary in summaries:
         db.mark_summary_as_sent(summary.document_id)
 
