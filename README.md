@@ -14,13 +14,27 @@ Send emails with LLM Summaries of Google Documentations from your Org.
 - Create a python virtual env
 - then: `pip install -r requirements.txt`
 
+### Running tests:
+- `pytest`
+
 ## Running it:
 - ensure you have the SENDGRID_API_KEY in your env variables
 - have a service account and the google service credentials available to the script
-- populate the `gdoc_summaries/tdd_documents.json` with the document IDs you want to summarize
-- populate the `gdoc_summaries/tdd_subscribers.json` with the email addresses you want to send to
-- Run it via: `PYTHONPATH=. python gdoc_summaries/tdd_summaries.py`
 - To reset your DB: `PYTHONPATH=. python gdoc_summaries/reset_database.py`
 
-## Running tests:
-- `pytest`
+### TDD Summaries:
+- populate the `gdoc_summaries/tdd_documents.json` with the document IDs and publication dates you want to summarize
+- populate the `gdoc_summaries/tdd_subscribers.json` with the email addresses you want to send to
+- Run it via: `PYTHONPATH=. python gdoc_summaries/tdd_summaries.py`
+
+### PRD Summaries:
+- populate the `gdoc_summaries/prd_documents.json` with the document IDs and publication dates you want to summarize
+- populate the `gdoc_summaries/prd_subscribers.json` with the email addresses you want to send to
+- Run it via: `PYTHONPATH=. python gdoc_summaries/prd_summaries.py`
+
+### Biweekly Summaries:
+- populate the `gdoc_summaries/biweekly_documents.json` with the document IDs you want to summarize
+- each biweekly document has sections that start with `--- UPDATE YYYY-MM-DD ---`
+- the latest section is the one that will be summarized
+- populate the `gdoc_summaries/biweekly_subscribers.json` with the email addresses you want to send to
+- Run it via: `PYTHONPATH=. python gdoc_summaries/biweekly_summaries.py`
