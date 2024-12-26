@@ -16,6 +16,9 @@ def extract_latest_section(document: dict) -> Optional[constants.DocumentSection
         
     Returns:
         Optional[constants.DocumentSection]: The latest section if found, None otherwise
+        
+    Raises:
+        ValueError: If a section contains an invalid date format
     """
     content = gdoc_client.extract_document_content(document)
     if not content:
@@ -41,8 +44,7 @@ def extract_latest_section(document: dict) -> Optional[constants.DocumentSection
                     content=section_content,
                     raw_content=match.group(0)
                 )
-        except ValueError as e:
-            print(f"Error parsing date {date_str}")
-            raise e
+        except ValueError:
+            raise ValueError(f"Invalid date format in section: {date_str}. Expected format: YYYY-MM-DD")
     
     return latest_section

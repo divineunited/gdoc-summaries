@@ -3,6 +3,7 @@ import sqlite3
 
 from gdoc_summaries.libs import constants
 
+DATABASE_PATH = "summaries.db"
 
 def _table_exists(cursor, table_name: str) -> bool:
     """Check if a table exists in the database"""
@@ -66,7 +67,7 @@ def run_migrations():
 
 def setup_database():
     """Initialize database and run migrations"""
-    conn = sqlite3.connect("summaries.db")
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
     # Create initial table structure

@@ -21,3 +21,6 @@ Send emails with LLM Summaries of Google Documentations from your Org.
 - populate the `gdoc_summaries/tdd_subscribers.json` with the email addresses you want to send to
 - Run it via: `PYTHONPATH=. python gdoc_summaries/tdd_summaries.py`
 - To reset your DB: `PYTHONPATH=. python gdoc_summaries/reset_database.py`
+
+## Running tests:
+- `pytest`
