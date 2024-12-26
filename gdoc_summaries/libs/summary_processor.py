@@ -32,7 +32,8 @@ def process_summaries(summary_type: constants.SummaryType) -> None:
         else:
             try:
                 document = gdoc_client.get_document_from_id(service, document_info.document_id)
-                llm_summary = llm.generate_llm_summary(document)
+                document_content = gdoc_client.extract_document_content(document)
+                llm_summary = llm.generate_llm_summary(document_content)
                 
                 summary = constants.Summary(
                     document_id=document_info.document_id,
@@ -57,7 +58,11 @@ def process_summaries(summary_type: constants.SummaryType) -> None:
     
     for email_address in constants.get_subscribers(summary_type):
         print(f"SENDING EMAIL TO: {email_address}")
-        email_client.build_and_send_email(email_address=email_address, summaries=summaries)
+        email_client.build_and_send_email(
+            email_address=email_address,
+            summaries=summaries,
+            summary_type=summary_type
+        )
 
     for summary in summaries:
         db.mark_summary_as_sent(summary.document_id)

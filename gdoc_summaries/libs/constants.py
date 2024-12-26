@@ -62,13 +62,17 @@ class Summary:
     date_published: str
     summary_type: SummaryType
 
+@dataclasses.dataclass
+class DocumentSection:
+    """Contains metadata and content for a specific section of a document."""
+    section_date: str
+    content: str
+    raw_content: str  # includes the delimiter and date
+
 def _extract_doc_info(doc_entry: dict) -> DocumentInfo:
     """Extract document ID and published date from a document entry."""
-    url = doc_entry.get("url")
-    date_published = doc_entry.get("date_published")
-    
-    if not url or not date_published:
-        raise ValueError(f"Invalid document entry format: {doc_entry}")
+    url = doc_entry.get("url", "")
+    date_published = doc_entry.get("date_published", "")
     
     if not url.startswith("https://docs.google.com/document/"):
         raise ValueError(f"Invalid Google Docs URL format: {url}")

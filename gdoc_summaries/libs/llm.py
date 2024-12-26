@@ -32,6 +32,7 @@ def retry_with_backoff(retries: int, backoff_in_seconds: list[int]) -> Callable:
                     if i == retries:  # Last attempt
                         raise e
                     wait_time = backoff_in_seconds[i]
+                    print("There was an error:", e)
                     print(f"Attempt {i + 1} failed. Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
             return None  # Should never reach here
@@ -40,13 +41,21 @@ def retry_with_backoff(retries: int, backoff_in_seconds: list[int]) -> Callable:
 
 
 @retry_with_backoff(retries=2, backoff_in_seconds=[35, 65])
-def generate_llm_summary(document: dict) -> str:
-    """Generate a summary of the document content using Azure OpenAI"""
+def generate_llm_summary(content: str) -> str:
+    """
+    Generate a summary using Azure OpenAI.
+    
+    Args:
+        content: The text content to summarize
+        
+    Returns:
+        str: HTML formatted summary
+    """
 
     print("Generating LLM Summary")
-    contents = document.get('body', {}).get('content', [])
-    if not contents:
-        raise ValueError(f"No content found for doc: {document.get('title')}")
+    if not content.strip():
+        raise ValueError("No content provided to summarize")
+
 
     prompt = (
         "As a professional summarizer, create a concise "
@@ -60,7 +69,7 @@ def generate_llm_summary(document: dict) -> str:
         "Utilize markdown to cleanly format your output. " 
         "Example: Bold key subject matter and potential areas that may need expanded information.\n"
         "Content is as follows:\n"
-        + str(contents)
+        + content
     )
 
     # Prepare the prompt data for the ChatGPT model

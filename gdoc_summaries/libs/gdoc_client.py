@@ -36,3 +36,22 @@ def get_document_from_id(service, document_id) -> dict:
     except Exception as e:
         print(f"An error occurred: {e}")
         raise e
+
+def extract_document_content(document: dict) -> str:
+    """
+    Extract plain text content from a Google Doc document structure.
+    
+    Args:
+        document: The Google Doc document dictionary
+        
+    Returns:
+        str: Plain text content of the document
+    """
+    content = []
+    for element in document.get("body", {}).get("content", []):
+        if "paragraph" in element:
+            for item in element["paragraph"].get("elements", []):
+                if "textRun" in item:
+                    content.append(item["textRun"].get("content", ""))
+    
+    return "".join(content)

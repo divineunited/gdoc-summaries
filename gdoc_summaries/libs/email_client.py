@@ -2,6 +2,7 @@
 
 import logging
 import os
+from datetime import datetime
 
 import pyjokes
 from sendgrid import SendGridAPIClient
@@ -13,11 +14,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 def build_and_send_email(
-    *, email_address: str, summaries: list[constants.Summary]
+    *, email_address: str, summaries: list[constants.Summary], summary_type: constants.SummaryType
 ):
     """Use Sendgrid's API Client to send an email"""
     sender_email = "danny.vu@cloverhealth.com"
-    subject = "Technical Documentation Summary"
+    subject = f"{summary_type.value.capitalize()} Summaries | Date: {datetime.now().strftime('%Y-%m-%d')}"
     body_html = "<p>Hi everyone!</p><p>Here are AI generated summaries of recent documents to review:</p>"
     body_html += "<hr>"
 
@@ -30,7 +31,9 @@ def build_and_send_email(
         body_html += "<hr>"
 
     body_html += '<p>If a summary was sent. It will not be sent again. </p>'
-    body_html += '<p>See <a href="https://cloverhealth.atlassian.net/wiki/x/CACt0Q">here</a> for previously sent TDDs</p>'
+    body_html += '<p>See <a href="https://cloverhealth.atlassian.net/wiki/x/CACt0Q">previously sent TDDs</a>'
+    body_html += ' | <a href="https://cloverhealth.atlassian.net/wiki/x/kADt0w">previously sent PRDs</a>'
+    body_html += ' | <a href="https://cloverhealth.atlassian.net/wiki/x/cIDs0w">previously sent Biweekly Summaries</a></p>'
     body_html += "<p>Also, enjoy this randomly generated joke:</p>"
     body_html += f"<p>{pyjokes.get_joke(language='en', category='neutral')}</p>"
 
