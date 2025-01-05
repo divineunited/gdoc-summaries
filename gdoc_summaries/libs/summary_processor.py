@@ -9,6 +9,47 @@ from gdoc_summaries.libs import constants, db, email_client, gdoc_client, llm
 
 LOGGER = logging.getLogger(__name__)
 
+def preview_and_confirm_email(summaries: List[constants.Summary], recipients: List[str]) -> bool:
+    """Show email preview and get user confirmation"""
+    print("\n=== EMAIL PREVIEW ===")
+    print(f"Would send {len(summaries)} summaries:")
+    for summary in summaries:
+        print(f"\nTitle: {summary.title}")
+        print(f"Date: {summary.date_published}")
+        print(f"Content preview: {summary.content[:200]}...")
+    
+    print("\nRecipients:")
+    for email in recipients:
+        print(f"- {email}")
+    
+    confirmation = input("\nSend these emails? (Y/N): ")
+    return confirmation.strip().upper() == "Y"
+
+def send_summaries(summaries: List[constants.Summary], summary_type: constants.SummaryType) -> bool:
+    """Send summaries to all subscribers and mark as sent. Returns True if emails were sent."""
+    if not summaries:
+        print("No summaries to send.")
+        return False
+
+    recipients = constants.get_subscribers(summary_type)
+    if not preview_and_confirm_email(summaries, recipients):
+        print("Aborted sending emails.")
+        return False
+
+    for email_address in recipients:
+        print(f"Sending email to: {email_address}")
+        email_client.build_and_send_email(
+            email_address=email_address,
+            summaries=summaries,
+            summary_type=summary_type
+        )
+
+    # Mark as sent after successful sending
+    for summary in summaries:
+        db.mark_summary_as_sent(summary.document_id)
+        
+    return True
+
 def process_summaries(summary_type: constants.SummaryType) -> None:
     """Process summaries for a given summary type"""
     db.setup_database()
@@ -50,19 +91,4 @@ def process_summaries(summary_type: constants.SummaryType) -> None:
                     continue
                 raise  # Re-raise other RuntimeErrors
 
-    if not summaries:
-        print("No new summaries to send.")
-        return
-
-    print(f"We would send {len(summaries)} summaries with titles: {[summary.title for summary in summaries]}")
-    
-    for email_address in constants.get_subscribers(summary_type):
-        print(f"SENDING EMAIL TO: {email_address}")
-        email_client.build_and_send_email(
-            email_address=email_address,
-            summaries=summaries,
-            summary_type=summary_type
-        )
-
-    for summary in summaries:
-        db.mark_summary_as_sent(summary.document_id)
+    send_summaries(summaries, summary_type)

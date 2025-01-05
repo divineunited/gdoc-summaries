@@ -60,14 +60,13 @@ def generate_llm_summary(content: str) -> str:
     prompt = (
         "As a professional summarizer, create a concise "
         "summary of the provided text while adhering to these guidelines:\n"
-        "If there is an author, before the summary, add: Author(s): Name(s)\n"
         "Craft a summary that is detailed, thorough, in-depth, and complex, "
         "while maintaining clarity and conciseness.\n"
         "Incorporate main ideas and essential information, eliminating extraneous "
         "language and focusing on critical aspects.\n"
         "Rely strictly on the provided text, without including external information.\n"
-        "Utilize markdown to cleanly format your output. " 
-        "Example: Bold key subject matter and potential areas that may need expanded information.\n"
+        "Utilize markdown to cleanly format your output. Do not use any header markdowns. " 
+        "Only use Bold or Italics for key subject matters that require emphasis.\n"
         "Content is as follows:\n"
         + content
     )
