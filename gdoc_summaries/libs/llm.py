@@ -145,7 +145,7 @@ def generate_llm_summary(content: str) -> str:
         tldr = _generate_tldr(markdown_content)
         
         # Combine TLDR and summary
-        full_content = f"**TLDR:** {tldr}\n\n{markdown_content}"
+        full_content = f"**TLDR:** {tldr}\n\n **Full Summary:** {markdown_content}"
         
         html_content = markdown.markdown(full_content)
         return html_content
