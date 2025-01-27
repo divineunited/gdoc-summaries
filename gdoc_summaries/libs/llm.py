@@ -41,6 +41,51 @@ def retry_with_backoff(retries: int, backoff_in_seconds: list[int]) -> Callable:
 
 
 @retry_with_backoff(retries=2, backoff_in_seconds=[35, 65])
+def _generate_tldr(summary: str) -> str:
+    """
+    Generate a one-sentence TLDR from a summary using Azure OpenAI.
+    
+    Args:
+        summary: The summary text to create a TLDR from
+        
+    Returns:
+        str: One sentence TLDR
+    """
+    print("Generating TLDR")
+    
+    prompt = (
+        "Create a single sentence TLDR that captures the most important aspects "
+        "of this summary. Keep it concise but informative. The summary is:\n"
+        + summary
+    )
+
+    data = {
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 100
+    }
+
+    credential = DefaultAzureCredential()
+    token = credential.get_token("https://cognitiveservices.azure.com/.default").token
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}"
+    }
+
+    api_url = f"{constants.AZURE_API_BASE}/openai/deployments/{constants.AZURE_MODEL_ENGINE}/chat/completions?api-version={constants.AZURE_API_VERSION}"
+    response = requests.post(api_url, headers=headers, json=data)
+
+    if response.status_code == 200:
+        print("Generated TLDR")
+        return response.json()["choices"][0]["message"]["content"].strip()
+    else:
+        print(f"Error in TLDR request: {response.status_code}, {response.text}")
+        raise RuntimeError(f"Error in TLDR request: {response.status_code}, {response.text}")
+
+
+@retry_with_backoff(retries=2, backoff_in_seconds=[35, 65])
 def generate_llm_summary(content: str) -> str:
     """
     Generate a summary using Azure OpenAI.
@@ -49,14 +94,13 @@ def generate_llm_summary(content: str) -> str:
         content: The text content to summarize
         
     Returns:
-        str: HTML formatted summary
+        str: HTML formatted summary with TLDR
     """
-
     print("Generating LLM Summary")
     if not content.strip():
         raise ValueError("No content provided to summarize")
 
-
+    # Generate main summary first
     prompt = (
         "As a professional summarizer, create a concise "
         "summary of the provided text while adhering to these guidelines:\n"
@@ -96,7 +140,14 @@ def generate_llm_summary(content: str) -> str:
     if response.status_code == 200:
         print("Generated LLM Summary")
         markdown_content = response.json()["choices"][0]["message"]["content"].strip()
-        html_content = markdown.markdown(markdown_content)
+        
+        # Generate TLDR from the summary
+        tldr = _generate_tldr(markdown_content)
+        
+        # Combine TLDR and summary
+        full_content = f"**TLDR:** {tldr}\n\n{markdown_content}"
+        
+        html_content = markdown.markdown(full_content)
         return html_content
     else:
         print(f"Error in LLM request: {response.status_code}, {response.text}")
