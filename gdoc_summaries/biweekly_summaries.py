@@ -88,13 +88,27 @@ def process_biweekly_summaries() -> None:
     """Process summaries for biweekly documents"""
     db.setup_database()
 
+    # Prompt for custom filename
+    custom_filename = input("Enter the filename for the biweekly documents JSON (biweekly_documents_p1.json or biweekly_documents_p2.json): ").strip()
+    
     creds = gdoc_client.get_credentials(
         creds_path=constants.CREDS_PATH,
         scopes=gdoc_client.SCOPES
     )
     service = discovery.build("docs", "v1", credentials=creds)
     
-    document_infos = constants.get_doc_info(constants.SummaryType.BIWEEKLY)
+    try:
+        document_infos = constants.get_doc_info(
+            constants.SummaryType.BIWEEKLY,
+            custom_filename if custom_filename else None
+        )
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        return
+    except ValueError as e:
+        print(f"Error: {e}")
+        return
+
     documents_with_updates = []
 
     # Process each document's sections

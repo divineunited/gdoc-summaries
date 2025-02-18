@@ -104,15 +104,22 @@ def get_subscribers(summary_type: SummaryType) -> list[str]:
 
     return subscribers
 
-def get_doc_info(summary_type: SummaryType) -> list[DocumentInfo]:
+def get_doc_info(summary_type: SummaryType, custom_filename: str = None) -> list[DocumentInfo]:
     """
     Retrieve document IDs and published dates from a JSON configuration file.
+    
+    Args:
+        summary_type: SummaryType enum indicating the type of summary
+        custom_filename: Optional custom filename to use instead of the default
     
     Returns:
         list[DocumentInfo]: List of document metadata including IDs and publication dates
     """
-    type_name = summary_type.value.lower()
-    json_file_path = os.path.expanduser(f"~/Downloads/gdoc_summary_files/{type_name}_documents.json")
+    if custom_filename:
+        json_file_path = os.path.expanduser(f"~/Downloads/gdoc_summary_files/{custom_filename}")
+    else:
+        type_name = summary_type.value.lower()
+        json_file_path = os.path.expanduser(f"~/Downloads/gdoc_summary_files/{type_name}_documents.json")
 
     if not os.path.exists(json_file_path):
         raise FileNotFoundError(f"The document IDs JSON file was not found at {json_file_path}.")
